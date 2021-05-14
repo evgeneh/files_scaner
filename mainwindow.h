@@ -2,6 +2,9 @@
 #define MAINWINDOW_H
 
 #include <QMainWindow>
+#include <QThread>
+#include <QList>
+#include "filescanworker.h"
 
 QT_BEGIN_NAMESPACE
 namespace Ui { class MainWindow; }
@@ -24,9 +27,19 @@ private slots:
 
     void on_pushButton_3_clicked();
 
+    void updateScanResult();
+
+    void on_pushButtonSelectDir_clicked();
+
+    void on_pushButtonStart_clicked();
+
 private:
     Ui::MainWindow *ui;
 
     QList<QString> m_extensions;
+
+    FileScanWorker *m_scanWorker;
+
+    QThread file_scan_thread;
 };
 #endif // MAINWINDOW_H

@@ -2,29 +2,12 @@
 #include "ui_mainwindow.h"
 #include <QFileDialog>
 #include <QMessageBox>
-#include <QDir>
 #include <QDateTime>
 
 #include <QProcess>
 #include <QWindow>
 #include <QDebug>
 
-
-
-struct TElm {
-    TElm(long _id, QString _name, QDateTime _date, QDateTime _last_read, QString _path, QString _dir, QString _parent, qint64 _size):
-        id(_id), name(_name), date(_date), last_read(_last_read), path(_path), dir(_dir), parent_dir(_parent), size(_size)
-    { }
-    long id;
-    QString name;
-    QDateTime date;
-    QDateTime last_read;
-    QString path;
-    QString dir;
-    QString parent_dir;
-    QString checksum;
-    qint64 size;
-};
 
 MainWindow::MainWindow(QWidget *parent)
     : QMainWindow(parent)
@@ -33,10 +16,13 @@ MainWindow::MainWindow(QWidget *parent)
     ui->setupUi(this);
 
     m_extensions = {"jpg", "jpeg", "png", "bmp"};
+
+    ui->progressBar->setVisible(false);
 }
 
 MainWindow::~MainWindow()
 {
+    file_scan_thread.quit();
     delete ui;
 }
 
@@ -70,18 +56,7 @@ void MainWindow::on_pushButton_3_clicked()
 
 void MainWindow::on_pushButton_2_clicked()
 {
-    QString dir = QFileDialog::getExistingDirectory(this, tr("Open Directory"),
-                                                 "/home",
-                                                 QFileDialog::ShowDirsOnly
-                                                 | QFileDialog::DontResolveSymlinks);
-    // QMessageBox::about(this, "Открыто", dir);
-    this->ui->dirNameEdit->setText(dir);
-    QDir directory(dir);
-
-    QStringList images = directory.entryList(QStringList() << "*.jpg" << "*.JPG" << "*.PNG" << "*.png",QDir::Files);
-    foreach(QString filename, images) {
-    //do whatever you need to do
-    }
+//
 }
 
 
@@ -91,89 +66,28 @@ void MainWindow::on_dirNameEdit_textChanged(const QString &arg1)
 }
 
 
-// рекурсивный поиск в файловой системе
-bool FindFileAndDir( QString szDir)
-{
-     qint16 qnFileCount = 0;
-     QDir dir( szDir);
-     foreach( QFileInfo fi, dir.entryInfoList())
-     {
-         QString szFileName = fi.absoluteFilePath();
-         if( fi.isDir())
-         {
-             if( fi.fileName()=="." || fi.fileName()=="..")
-             continue;
-
-            FindFileAndDir( szFileName);
-         }
-         if( fi.isFile())
-         {
-            qnFileCount++;
-         }
-     }
-     qDebug( "Dir: %s, File count: %d", qPrintable( szDir), qnFileCount);
-
-     return true;
-}
-
-
-QList<TElm> dirsList;
-long dirCount;
-long fileCount;
-
-
-void scanDir(QString dir_path, QString parent) {
-    QDir directory(dir_path);
-    QFileInfoList dirItemsVector;
-    if (!directory.exists()){
-        return;
-    }
-    dirItemsVector = directory.entryInfoList();
-
-    if (dirItemsVector.size() > 2)
-    {
-        foreach (const QFileInfo dir_item, dirItemsVector) {
-            if (dir_item.fileName() != "." && dir_item.fileName() != ".." ) {
-                if (dir_item.isDir()) {
-                    // parse as dir
-                    if (! dir_item.fileName().contains("_files"))
-                    {
-                        dirCount++;
-                        scanDir(dir_item.filePath(), directory.dirName());
-                    }
-                } else if (dir_item.isFile()){
-                    //parse as file
-                    // if (m_extensions dir_item.completeSuffix();
-
-                    QDateTime d_created = dir_item.created();
-                    QDateTime d_last_read = dir_item.lastRead();
-                    QString dir =  directory.dirName().section('\\', -1);
-                    fileCount++;
-                    TElm elm{fileCount, dir_item.fileName(), d_created, d_last_read, dir_item.path(), dir, parent, dir_item.size()};
-                    dirsList << elm;
-                }
-
-            }
-        }
-    }
-}
-
-
 void MainWindow::on_pushButton_clicked()
 {
-    dirCount = 0;
-    fileCount = 0;
-    // get path name and scan
-    scanDir(this->ui->dirNameEdit->text(), "__ROOT__");
+    //
+}
 
-    // dirsList
+void MainWindow::updateScanResult()
+{
     ui->tableWidget->clearContents();
-    ui->tableWidget->setRowCount(dirsList.length());
+    ui->tableWidget->setRowCount(m_scanWorker->dirList().length());
+
+
+    ui->progressBar->setVisible(false);
+    ui->pushButtonStart->setEnabled(true);
+
+
     int i = 0;
-    foreach (const TElm &row, dirsList) {
+
+    // QList::
+    foreach (const TElm &row, m_scanWorker->dirList()) {
         QTableWidgetItem *item = new QTableWidgetItem();
         item->setText(row.parent_dir);
-        item->setData(Qt::UserRole, dirsList.size() - 1);
+        item->setData(Qt::UserRole, m_scanWorker->dirList().size() - 1);
         ui->tableWidget->setItem(i, 0, item);
 
         item = new QTableWidgetItem();
@@ -185,14 +99,47 @@ void MainWindow::on_pushButton_clicked()
         ui->tableWidget->setItem(i, 2, item);
 
         item = new QTableWidgetItem();
-        item->setText(QString::number(row.size / 1000.0)); // size of file in Mb
+        item->setText(QString::number(row.size / 1024.0)); // size of file in Mb
         ui->tableWidget->setItem(i, 3, item);
 
         item = new QTableWidgetItem();
-        item->setText(row.date.toString(Qt::ISODate));
+        // item->setText(row.date.toString(Qt::ISODate));
+        item->setData(Qt::DisplayRole, row.date);
         ui->tableWidget->setItem(i, 4, item);
 
         i++;
     }
+    ui->tableWidget->setSortingEnabled(true);
+
+    delete m_scanWorker;
+    m_scanWorker = nullptr;
 }
 
+
+void MainWindow::on_pushButtonSelectDir_clicked()
+{
+    QString dir = QFileDialog::getExistingDirectory(this, tr("Open Directory"),
+                                                 "/home",
+                                                 QFileDialog::ShowDirsOnly
+                                                 | QFileDialog::DontResolveSymlinks);
+    // QMessageBox::about(this, "Открыто", dir);
+    this->ui->dirNameEdit->setText(dir);
+    QDir directory(dir);
+
+    QStringList images = directory.entryList(QStringList() << "*.jpg" << "*.JPG" << "*.PNG" << "*.png",QDir::Files);
+
+}
+
+void MainWindow::on_pushButtonStart_clicked()
+{
+    ui->progressBar->setVisible(true);
+    ui->pushButtonStart->setEnabled(false);
+
+    // get path name and scan
+    m_scanWorker = new FileScanWorker(this->ui->dirNameEdit->text(), m_extensions);
+    m_scanWorker->moveToThread(&file_scan_thread);
+
+    connect(&file_scan_thread, SIGNAL(started()), m_scanWorker, SLOT(beginScan()));
+    connect(m_scanWorker, SIGNAL(finish()), this, SLOT(updateScanResult()));
+    file_scan_thread.start();
+}
