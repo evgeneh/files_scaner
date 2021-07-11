@@ -16,15 +16,20 @@ DEFINES += QT_DEPRECATED_WARNINGS
 #DEFINES += QT_DISABLE_DEPRECATED_BEFORE=0x060000    # disables all the APIs deprecated before Qt 6.0.0
 
 SOURCES += \
+    dialogs/assertiondialog.cpp \
     filescanworker.cpp \
     main.cpp \
-    mainwindow.cpp
+    mainwindow.cpp \
+    models/scanitemmodel.cpp
 
 HEADERS += \
+    dialogs/assertiondialog.h \
     filescanworker.h \
-    mainwindow.h
+    mainwindow.h \
+    models/scanitemmodel.h
 
 FORMS += \
+    dialogs/assertiondialog.ui \
     mainwindow.ui
 
 # Default rules for deployment.

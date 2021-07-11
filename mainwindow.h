@@ -33,6 +33,10 @@ private slots:
 
     void on_pushButtonStart_clicked();
 
+    void on_tableWidget_cellDoubleClicked(int row, int column);
+
+    void on_actionContent_assertion_triggered();
+
 private:
     Ui::MainWindow *ui;
 
@@ -41,5 +45,7 @@ private:
     FileScanWorker *m_scanWorker;
 
     QThread file_scan_thread;
+
+    QList<TElm> m_dirsList;
 };
 #endif // MAINWINDOW_H

@@ -8,16 +8,22 @@
 #include <QWindow>
 #include <QDebug>
 
+#include <QDesktopServices>
+#include <QUrl>
+#include "dialogs/assertiondialog.h"
+
 
 MainWindow::MainWindow(QWidget *parent)
     : QMainWindow(parent)
     , ui(new Ui::MainWindow)
+    , m_dirsList()
 {
     ui->setupUi(this);
 
     m_extensions = {"jpg", "jpeg", "png", "bmp"};
 
     ui->progressBar->setVisible(false);
+
 }
 
 MainWindow::~MainWindow()
@@ -80,6 +86,7 @@ void MainWindow::updateScanResult()
     ui->progressBar->setVisible(false);
     ui->pushButtonStart->setEnabled(true);
 
+    m_dirsList =  m_scanWorker->dirList();
 
     int i = 0;
 
@@ -142,4 +149,23 @@ void MainWindow::on_pushButtonStart_clicked()
     connect(&file_scan_thread, SIGNAL(started()), m_scanWorker, SLOT(beginScan()));
     connect(m_scanWorker, SIGNAL(finish()), this, SLOT(updateScanResult()));
     file_scan_thread.start();
+}
+
+void MainWindow::on_tableWidget_cellDoubleClicked(int row, int column)
+{
+   // QMessageBox::about(this, "Clicked", "ROW: " + QString::number(row) + "   COL: " + QString::number(column));
+    if (column == 2)
+    {
+
+        // QDesktopServices::openUrl(QUrl::fromLocalFile(QString(filePath)));
+    }
+}
+
+void MainWindow::on_actionContent_assertion_triggered()
+{
+    if (m_dirsList.isEmpty())
+        return;
+    AssertionDialog dialog(this, m_dirsList);
+    dialog.exec();
+
 }

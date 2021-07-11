@@ -62,7 +62,7 @@ void FileScanWorker::scanDir(const QString &dir_path, const QString &parent)
                         continue;
                     }
 
-                    QDateTime d_created = dir_item->created();
+                    QDateTime d_created = dir_item->lastModified();
                     QDateTime d_last_read = dir_item->lastRead();
                     QString dir =  directory.dirName().section('\\', -1);
                     m_fileCount++;
