@@ -28,6 +28,7 @@ void FileScanWorker::beginScan()
 {
     m_dirsList.clear();
 
+    m_fileCount = 0;
     scanDir(m_baseUrl, "__ROOT__");
 
     emit finish();

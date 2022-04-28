@@ -37,6 +37,10 @@ private slots:
 
     void on_actionContent_assertion_triggered();
 
+    void on_actionDirectories_changed();
+
+    void on_actionDirectories_triggered();
+
 private:
     Ui::MainWindow *ui;
 
@@ -47,5 +51,7 @@ private:
     QThread file_scan_thread;
 
     QList<TElm> m_dirsList;
+
+    TElm getElmById(long id) const;
 };
 #endif // MAINWINDOW_H

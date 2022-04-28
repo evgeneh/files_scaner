@@ -46,6 +46,9 @@
       </item>
       <item>
        <widget class="QTableWidget" name="tableWidget">
+        <property name="editTriggers">
+         <set>QAbstractItemView::NoEditTriggers</set>
+        </property>
         <property name="selectionMode">
          <enum>QAbstractItemView::SingleSelection</enum>
         </property>
@@ -147,6 +150,7 @@
      <string>Filter</string>
     </property>
     <addaction name="actionContent_assertion"/>
+    <addaction name="actionDirectories"/>
    </widget>
    <addaction name="menuFile"/>
    <addaction name="menuFilter"/>
@@ -160,6 +164,11 @@
   <action name="actionContent_assertion">
    <property name="text">
     <string>Content assertion</string>
+   </property>
+  </action>
+  <action name="actionDirectories">
+   <property name="text">
+    <string>Directories</string>
    </property>
   </action>
  </widget>

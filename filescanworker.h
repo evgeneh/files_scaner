@@ -5,9 +5,14 @@
 #include <QDateTime>
 
 struct TElm {
-    TElm(long _id, QString _name, QDateTime _date, QDateTime _last_read, QString _path, QString _dir, QString _parent, qint64 _size):
+    TElm():
+        id(-1)
+    {}
+
+    TElm(long _id, const QString& _name, const QDateTime& _date, const QDateTime& _last_read, const QString& _path, const QString& _dir, const QString& _parent, qint64 _size):
         id(_id), name(_name), date(_date), last_read(_last_read), path(_path), dir(_dir), parent_dir(_parent), size(_size)
     { }
+
     long id;
     QString name;
     QDateTime date;
@@ -17,6 +22,35 @@ struct TElm {
     QString parent_dir;
     QString checksum;
     qint64 size;
+};
+
+struct TDirStat {
+    TDirStat():
+        parent(QString()), name(QString()), elmCount(0), totalSize(0), minDate(QDateTime()), maxDate(QDateTime())
+    {
+
+    }
+    TDirStat(TElm elm): elmCount(1) {
+        parent = elm.parent_dir;
+        name = elm.dir;
+        totalSize = elm.size;
+        minDate = elm.date;
+        maxDate = elm.date;
+    }
+    void updateDir(TElm elm) {
+        elmCount += 1;
+        totalSize += elm.size;
+        if (elm.date > maxDate)
+            maxDate = elm.date;
+        else if (elm.date < minDate)
+            minDate = elm.date;
+    }
+    QString parent;
+    QString name;    
+    long totalSize;
+    int elmCount;
+    QDateTime minDate;
+    QDateTime maxDate;
 };
 
 class FileScanWorker : public QObject

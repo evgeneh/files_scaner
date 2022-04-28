@@ -10,7 +10,11 @@
 
 #include <QDesktopServices>
 #include <QUrl>
+
+#include "./utils/datedelegate.h"
+
 #include "dialogs/assertiondialog.h"
+#include "dialogs/directorydialog.h"
 
 
 MainWindow::MainWindow(QWidget *parent)
@@ -94,7 +98,7 @@ void MainWindow::updateScanResult()
     foreach (const TElm &row, m_scanWorker->dirList()) {
         QTableWidgetItem *item = new QTableWidgetItem();
         item->setText(row.parent_dir);
-        item->setData(Qt::UserRole, m_scanWorker->dirList().size() - 1);
+        item->setData(Qt::UserRole, (long long) row.id);
         ui->tableWidget->setItem(i, 0, item);
 
         item = new QTableWidgetItem();
@@ -110,13 +114,14 @@ void MainWindow::updateScanResult()
         ui->tableWidget->setItem(i, 3, item);
 
         item = new QTableWidgetItem();
-        // item->setText(row.date.toString(Qt::ISODate));
         item->setData(Qt::DisplayRole, row.date);
         ui->tableWidget->setItem(i, 4, item);
 
         i++;
     }
     ui->tableWidget->setSortingEnabled(true);
+    DateDelegate *delegate = new DateDelegate(this);
+    ui->tableWidget->setItemDelegateForColumn(4, delegate);
 
     delete m_scanWorker;
     m_scanWorker = nullptr;
@@ -133,7 +138,7 @@ void MainWindow::on_pushButtonSelectDir_clicked()
     this->ui->dirNameEdit->setText(dir);
     QDir directory(dir);
 
-    QStringList images = directory.entryList(QStringList() << "*.jpg" << "*.JPG" << "*.PNG" << "*.png",QDir::Files);
+    QStringList images = directory.entryList(QStringList() << "*.jpg" << "*.JPG" << "*.PNG" << "*.png", QDir::Files);
 
 }
 
@@ -154,10 +159,23 @@ void MainWindow::on_pushButtonStart_clicked()
 void MainWindow::on_tableWidget_cellDoubleClicked(int row, int column)
 {
    // QMessageBox::about(this, "Clicked", "ROW: " + QString::number(row) + "   COL: " + QString::number(column));
+    bool ok = false;
+    auto itemId = (long)ui->tableWidget->item(row, 0)->data(Qt::UserRole).toLongLong(&ok); // itemAt(row, 0)->data(Qt::UserRole).toLongLong();
+    if (!ok) {
+        return;
+    }
+
+    TElm elm = getElmById(itemId);
+    if (elm.id < 0) {
+        return;
+    }
     if (column == 2)
     {
-
-        // QDesktopServices::openUrl(QUrl::fromLocalFile(QString(filePath)));
+        QDesktopServices::openUrl(QUrl::fromLocalFile(elm.path + "/" + elm.name));
+    }
+    else if (column == 1)
+    {
+        QDesktopServices::openUrl(QUrl::fromLocalFile(elm.path));
     }
 }
 
@@ -168,4 +186,26 @@ void MainWindow::on_actionContent_assertion_triggered()
     AssertionDialog dialog(this, m_dirsList);
     dialog.exec();
 
+}
+
+void MainWindow::on_actionDirectories_changed()
+{
+
+}
+
+void MainWindow::on_actionDirectories_triggered()
+{
+    // Show directories dialog
+    DirectoryDialog dialog(this, m_dirsList);
+    dialog.exec();
+}
+
+TElm MainWindow::getElmById(long id) const
+{
+    for (long i = 0; i < m_dirsList.length(); ++i) {
+        if (m_dirsList.at(i).id == id) {
+            return m_dirsList.at(i);
+        }
+    }
+    return TElm();
 }

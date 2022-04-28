@@ -17,6 +17,7 @@ DEFINES += QT_DEPRECATED_WARNINGS
 
 SOURCES += \
     dialogs/assertiondialog.cpp \
+    dialogs/directorydialog.cpp \
     filescanworker.cpp \
     main.cpp \
     mainwindow.cpp \
@@ -24,12 +25,15 @@ SOURCES += \
 
 HEADERS += \
     dialogs/assertiondialog.h \
+    dialogs/directorydialog.h \
     filescanworker.h \
     mainwindow.h \
-    models/scanitemmodel.h
+    models/scanitemmodel.h \
+    utils/datedelegate.h
 
 FORMS += \
     dialogs/assertiondialog.ui \
+    dialogs/directorydialog.ui \
     mainwindow.ui
 
 # Default rules for deployment.
