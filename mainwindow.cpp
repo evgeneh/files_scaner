@@ -10,6 +10,8 @@
 
 #include <QDesktopServices>
 #include <QUrl>
+#include <QFile>
+#include <QIODevice>
 
 #include "./utils/datedelegate.h"
 
@@ -21,6 +23,7 @@ MainWindow::MainWindow(QWidget *parent)
     : QMainWindow(parent)
     , ui(new Ui::MainWindow)
     , m_dirsList()
+    , m_recentDirs()
 {
     ui->setupUi(this);
 
@@ -28,11 +31,11 @@ MainWindow::MainWindow(QWidget *parent)
 
     ui->progressBar->setVisible(false);
 
+    loadDirHistory();
 }
 
 MainWindow::~MainWindow()
 {
-    file_scan_thread.quit();
     delete ui;
 }
 
@@ -86,7 +89,6 @@ void MainWindow::updateScanResult()
     ui->tableWidget->clearContents();
     ui->tableWidget->setRowCount(m_scanWorker->dirList().length());
 
-
     ui->progressBar->setVisible(false);
     ui->pushButtonStart->setEnabled(true);
 
@@ -123,7 +125,7 @@ void MainWindow::updateScanResult()
     DateDelegate *delegate = new DateDelegate(this);
     ui->tableWidget->setItemDelegateForColumn(4, delegate);
 
-    delete m_scanWorker;
+    m_scanWorker->deleteLater();
     m_scanWorker = nullptr;
 }
 
@@ -134,7 +136,6 @@ void MainWindow::on_pushButtonSelectDir_clicked()
                                                  "/home",
                                                  QFileDialog::ShowDirsOnly
                                                  | QFileDialog::DontResolveSymlinks);
-    // QMessageBox::about(this, "Открыто", dir);
     this->ui->dirNameEdit->setText(dir);
     QDir directory(dir);
 
@@ -144,18 +145,46 @@ void MainWindow::on_pushButtonSelectDir_clicked()
 
 void MainWindow::on_pushButtonStart_clicked()
 {
+    QString dirPath = this->ui->dirNameEdit->text();
+
+    if (dirPath.length() < 2) {
+        return;
+    }
+
+    QDir directory(dirPath);
+    if (!directory.exists()) {
+        QMessageBox::critical(this, "Error", "Directory \"" + dirPath + "\" is not exists");
+        return;
+    }
+
     ui->progressBar->setVisible(true);
     ui->pushButtonStart->setEnabled(false);
 
-    // get path name and scan
-    m_scanWorker = new FileScanWorker(this->ui->dirNameEdit->text(), m_extensions);
-    m_scanWorker->moveToThread(&file_scan_thread);
+    QThread* file_scan_thread = new QThread;
 
-    connect(&file_scan_thread, SIGNAL(started()), m_scanWorker, SLOT(beginScan()));
+    // get path name and scan
+    m_scanWorker = nullptr;
+    m_scanWorker = new FileScanWorker(this->ui->dirNameEdit->text(), m_extensions);
+
+    m_scanWorker->moveToThread(file_scan_thread);
+
+    connect(file_scan_thread, SIGNAL(started()), m_scanWorker, SLOT(beginScan()));
     connect(m_scanWorker, SIGNAL(finish()), this, SLOT(updateScanResult()));
-    file_scan_thread.start();
+
+    // connect(m_scanWorker, SIGNAL(finish()), m_scanWorker, SLOT(deleteLater()));
+    connect(file_scan_thread, SIGNAL(finished()), file_scan_thread, SLOT(deleteLater()));
+    file_scan_thread->start();
+
+    // create history record
+    if (m_recentDirs.contains(this->ui->dirNameEdit->text())) {
+        m_recentDirs[this->ui->dirNameEdit->text()] = QDateTime::currentDateTime();
+    } else {
+        m_recentDirs.insert(this->ui->dirNameEdit->text(), QDateTime::currentDateTime());
+    }
+    updateHistroyDropList();
 }
 
+// Open directory or file by table cell click
 void MainWindow::on_tableWidget_cellDoubleClicked(int row, int column)
 {
    // QMessageBox::about(this, "Clicked", "ROW: " + QString::number(row) + "   COL: " + QString::number(column));
@@ -208,4 +237,78 @@ TElm MainWindow::getElmById(long id) const
         }
     }
     return TElm();
+}
+
+// load recent directories
+void MainWindow::loadDirHistory()
+{
+    QString filename(QDir::currentPath() + "/recent.log");
+    if (!QFile::exists(filename)) {
+        return;
+    }
+    QFile file(filename);
+
+    if(file.open(QIODevice::ReadOnly)) {
+        QDataStream out(&file);
+        // out.setVersion(QDataStream::Qt_4_8);
+        out >> m_recentDirs;
+        file.close();
+    }
+
+    updateHistroyDropList();
+
+    ui->dirNameEdit->setText(ui->comboBox_recentDirs->itemData(0, Qt::UserRole).toString());
+}
+
+void MainWindow::saveDirHistory()
+{
+    QString filename(QDir::currentPath() + "/recent.log");
+    QFile file(filename);
+
+    if(file.open(QIODevice::ReadWrite)) {
+        QDataStream out(&file);
+        // out.setVersion(QDataStream::Qt_4_8);
+        out << m_recentDirs;
+        file.close();
+    }
+}
+
+void MainWindow::updateHistroyDropList()
+{
+    if (m_recentDirs.isEmpty()) {
+        return;
+    }
+    ui->comboBox_recentDirs->clear();
+
+    QList<QPair<QDateTime, QString>> sortedList;
+    for (auto it = m_recentDirs.begin(); it != m_recentDirs.end(); ++it) {
+        sortedList.append(QPair<QDateTime, QString>(it.value(), it.key()));
+    }
+    std::sort(sortedList.begin(), sortedList.end());
+
+    for (int i = sortedList.length() - 1; i >= 0; --i) {
+        ui->comboBox_recentDirs->addItem(sortedList.at(i).second + "   Date: <" + sortedList.at(i).first.toString("dd.MM.yyyy hh:mm")  + ">", sortedList.at(i).second);
+    }
+}
+
+void MainWindow::closeEvent (QCloseEvent *event)
+{
+    Q_UNUSED(event);
+    saveDirHistory();
+}
+
+void MainWindow::on_MainWindow_destroyed()
+{
+
+}
+
+void MainWindow::on_pushButton_addRecent_clicked()
+{
+    ui->dirNameEdit->setText(ui->comboBox_recentDirs->currentData().toString());
+}
+
+void MainWindow::on_comboBox_recentDirs_currentIndexChanged(int index)
+{
+    Q_UNUSED(index);
+    ui->dirNameEdit->setText(ui->comboBox_recentDirs->currentData().toString());
 }

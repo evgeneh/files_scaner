@@ -2,10 +2,14 @@
 #include "ui_directorydialog.h"
 #include "../utils/datedelegate.h"
 
+#include <QDesktopServices>
+#include <QUrl>
 
-DirectoryDialog::DirectoryDialog(QWidget *parent, const QList<TElm> & dirList) :
+
+DirectoryDialog::DirectoryDialog(QWidget *parent, const QList<TElm> & dirList):
     QDialog(parent),
-    ui(new Ui::DirectoryDialog)
+    ui(new Ui::DirectoryDialog),
+    m_dirStat()
 {
     ui->setupUi(this);
     calcDirectories(dirList);
@@ -36,12 +40,13 @@ void DirectoryDialog::calcDirectories(const QList<TElm> &dirList)
     // ui->tableWidget->setRowCount(dirList.length());
 
     QMap<QString, TDirStat> dirStat;
+    m_dirStat.clear();
     int k = 0;
     foreach (TElm row, dirList) {
-        if (dirStat.contains(row.path)) {
-            dirStat[row.path].updateDir(row);
+        if (m_dirStat.contains(row.path)) {
+            m_dirStat[row.path].updateDir(row);
         } else {            
-            dirStat.insert(row.path, TDirStat(row));
+            m_dirStat.insert(row.path, TDirStat(row));
             ++k;
         }
     }
@@ -49,8 +54,8 @@ void DirectoryDialog::calcDirectories(const QList<TElm> &dirList)
     ui->tableWidget->setRowCount(k);
 
     int i = 0;
-    auto it = dirStat.constBegin();
-    for (it = dirStat.constBegin(); it != dirStat.constEnd(); ++it)
+    auto it = m_dirStat.constBegin();
+    for (it = m_dirStat.constBegin(); it != m_dirStat.constEnd(); ++it)
     {
         auto row = it.value();
         QTableWidgetItem *item = new QTableWidgetItem();
@@ -86,4 +91,35 @@ void DirectoryDialog::calcDirectories(const QList<TElm> &dirList)
     ui->tableWidget->setItemDelegateForColumn(5, delegate);
 
     ui->tableWidget->setSortingEnabled(true);
+}
+
+void DirectoryDialog::on_tableWidget_cellDoubleClicked(int row, int column)
+{
+
+    auto itemPath = ui->tableWidget->item(row, 0)->data(Qt::UserRole).toString(); // itemAt(row, 0)->data(Qt::UserRole).toLongLong();
+
+    if (!m_dirStat.contains(itemPath)) {
+        return;
+    }
+
+    TDirStat dirStatItem = m_dirStat[itemPath];
+
+    QString pathToOpen = "";
+    if (column == 1)
+    {
+        pathToOpen = itemPath;
+
+    }
+    else if (column == 4)
+    {
+        pathToOpen = itemPath + "/" + dirStatItem.oldestFileName;
+    }
+    else if (column == 5)
+    {
+        pathToOpen = itemPath + "/" + dirStatItem.latestFileName;
+    }
+
+    if (pathToOpen.length() > 1){
+        QDesktopServices::openUrl(QUrl::fromLocalFile(pathToOpen));
+    }
 }

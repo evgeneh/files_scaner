@@ -41,6 +41,14 @@ private slots:
 
     void on_actionDirectories_triggered();
 
+    void on_MainWindow_destroyed();
+
+    void closeEvent (QCloseEvent *event);
+
+    void on_pushButton_addRecent_clicked();
+
+    void on_comboBox_recentDirs_currentIndexChanged(int index);
+
 private:
     Ui::MainWindow *ui;
 
@@ -48,10 +56,14 @@ private:
 
     FileScanWorker *m_scanWorker;
 
-    QThread file_scan_thread;
-
     QList<TElm> m_dirsList;
 
     TElm getElmById(long id) const;
+
+    QMap<QString, QDateTime> m_recentDirs;
+
+    void loadDirHistory();
+    void saveDirHistory();
+    void updateHistroyDropList();
 };
 #endif // MAINWINDOW_H

@@ -2,6 +2,7 @@
 #define DIRECTORYDIALOG_H
 
 #include <QDialog>
+#include <QMap>
 #include <QAbstractButton>
 #include "filescanworker.h"
 
@@ -25,10 +26,12 @@ private slots:
 
     void on_buttonBox_accepted();
 
+    void on_tableWidget_cellDoubleClicked(int row, int column);
+
 private:
     Ui::DirectoryDialog *ui;
     void calcDirectories(const QList<TElm> & dirList);
-
+    QMap<QString, TDirStat> m_dirStat;
 };
 
 #endif // DIRECTORYDIALOG_H

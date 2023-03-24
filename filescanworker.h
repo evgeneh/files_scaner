@@ -26,11 +26,12 @@ struct TElm {
 
 struct TDirStat {
     TDirStat():
-        parent(QString()), name(QString()), elmCount(0), totalSize(0), minDate(QDateTime()), maxDate(QDateTime())
+        parent(QString()), name(QString()), elmCount(0), totalSize(0), minDate(QDateTime()), maxDate(QDateTime()),
+        oldestFileName(QString()), latestFileName(QString())
     {
 
     }
-    TDirStat(TElm elm): elmCount(1) {
+    TDirStat(TElm elm): elmCount(1), oldestFileName(QString()), latestFileName(QString()) {
         parent = elm.parent_dir;
         name = elm.dir;
         totalSize = elm.size;
@@ -40,10 +41,14 @@ struct TDirStat {
     void updateDir(TElm elm) {
         elmCount += 1;
         totalSize += elm.size;
-        if (elm.date > maxDate)
+        if (elm.date > maxDate){
             maxDate = elm.date;
-        else if (elm.date < minDate)
+            latestFileName = elm.name;
+        }
+        else if (elm.date < minDate){
             minDate = elm.date;
+            oldestFileName = elm.name;
+        }
     }
     QString parent;
     QString name;    
@@ -51,6 +56,8 @@ struct TDirStat {
     int elmCount;
     QDateTime minDate;
     QDateTime maxDate;
+    QString oldestFileName;
+    QString latestFileName;
 };
 
 class FileScanWorker : public QObject
