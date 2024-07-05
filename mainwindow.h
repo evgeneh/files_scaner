@@ -4,6 +4,8 @@
 #include <QMainWindow>
 #include <QThread>
 #include <QList>
+#include <QMap>
+#include <QDateTime>
 #include "filescanworker.h"
 
 QT_BEGIN_NAMESPACE

@@ -139,7 +139,7 @@ void MainWindow::on_pushButtonSelectDir_clicked()
     this->ui->dirNameEdit->setText(dir);
     QDir directory(dir);
 
-    QStringList images = directory.entryList(QStringList() << "*.jpg" << "*.JPG" << "*.PNG" << "*.png", QDir::Files);
+    QStringList images = directory.entryList(QStringList() << "*.jpeg" << "*.jpg" << "*.JPG" << "*.PNG" << "*.png", QDir::Files);
 
 }
 
